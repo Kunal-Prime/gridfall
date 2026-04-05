@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-on-tertiary-fixed: #221b00;
+  --color-secondary-fixed: #ffd7f5;
+  --color-on-secondary: #5b005b;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-error-container: #93000a;
+  --color-on-secondary-fixed-variant: #810081;
+  --color-on-tertiary: #3a3000;
+  --color-background: #131313;
+  --color-secondary-fixed-dim: #ffabf3;
+  --color-secondary: #ffabf3;
+  --color-outline: #839493;
+  --color-primary-fixed-dim: #00dddd;
+  --color-on-secondary-fixed: #380038;
+  --color-surface-container-highest: #353534;
+  --color-on-secondary-container: #500050;
+  --color-inverse-on-surface: #313030;
+  --color-tertiary: #ffffff;
+  --color-tertiary-container: #ffe16d;
+  --color-surface-variant: #353534;
+  --color-on-tertiary-fixed-variant: #544600;
+  --color-on-error-container: #ffdad6;
+  --color-secondary-container: #fe00fe;
+  --color-surface: #131313;
+  --color-primary-fixed: #00fbfb;
+  --color-on-surface: #e5e2e1;
+  --color-surface-bright: #393939;
+  --color-on-tertiary-container: #776300;
+  --color-on-primary-fixed: #002020;
+  --color-primary-container: #00fbfb;
+  --color-on-primary-fixed-variant: #004f4f;
+  --color-on-primary: #003737;
+  --color-surface-tint: #00dddd;
+  --color-surface-container: #201f1f;
+  --color-surface-container-low: #1c1b1b;
+  --color-error: #ffb4ab;
+  --color-inverse-primary: #006a6a;
+  --color-surface-dim: #131313;
+  --color-on-surface-variant: #b9cac9;
+  --color-on-primary-container: #007070;
+  --color-on-error: #690005;
+  --color-inverse-surface: #e5e2e1;
+  --color-tertiary-fixed-dim: #e9c400;
+  --color-primary: #ffffff;
+  --color-outline-variant: #3a4a49;
+  --color-on-background: #e5e2e1;
+  --color-surface-container-high: #2a2a2a;
+  --color-tertiary-fixed: #ffe16d;
+
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+}
+
+.scanline {
+  background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+}

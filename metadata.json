@@ -1,0 +1,5 @@
+{
+  "name": "GRIDFALL",
+  "description": "A 3-5 player real-time browser game on a 6x6 tile grid. Capture tiles, evolve, and fight to be the last one standing.",
+  "requestFramePermissions": []
+}
