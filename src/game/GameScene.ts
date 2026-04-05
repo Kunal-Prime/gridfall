@@ -61,7 +61,7 @@ export class GameScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-RIGHT', () => this.movePlayer(1, 0));
     }
 
-    this.socket = io();
+    this.socket = io('https://gridfall-production.up.railway.app');
 
     const handlePickEvolution = ((e: CustomEvent) => {
       this.socket.emit('evolution_picked', e.detail);
