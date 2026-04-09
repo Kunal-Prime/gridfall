@@ -239,6 +239,7 @@ async function startServer() {
     };
     operatorCounter++;
 
+    console.log(`👤 PLAYER JOINED: ${operatorName} (${socket.id}) at [${players[socket.id].x}, ${players[socket.id].y}]`);
     socket.emit("init", { id: socket.id, grid, players });
     socket.broadcast.emit("playerJoined", players[socket.id]);
     io.emit("playerCount", Object.keys(players).length);

@@ -82,6 +82,9 @@ export default function App() {
       }
     };
     const handleChaosUpdate = (e: any) => setChaosSeconds(e.detail);
+    const handleConnectionError = (e: any) => {
+      setOperatorName(`CONNECTION ERROR: ${e.detail}`);
+    };
 
     window.addEventListener('energy-update', handleEnergyUpdate);
     window.addEventListener('player-pos', handlePosUpdate);
@@ -91,6 +94,7 @@ export default function App() {
     window.addEventListener('player-eliminated', handleEliminated);
     window.addEventListener('game-over', handleGameOver);
     window.addEventListener('chaos-update', handleChaosUpdate);
+    window.addEventListener('connection-error', handleConnectionError);
 
     return () => {
       window.removeEventListener('energy-update', handleEnergyUpdate);
@@ -101,6 +105,7 @@ export default function App() {
       window.removeEventListener('player-eliminated', handleEliminated);
       window.removeEventListener('game-over', handleGameOver);
       window.removeEventListener('chaos-update', handleChaosUpdate);
+      window.removeEventListener('connection-error', handleConnectionError);
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;

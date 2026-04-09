@@ -47,28 +47,8 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  create() {
-    if (this.input.keyboard) {
-      this.cursors = this.input.keyboard.createCursorKeys();
-
-      this.input.keyboard.on('keydown-W', () => this.movePlayer(0, -1));
-      this.input.keyboard.on('keydown-S', () => this.movePlayer(0, 1));
-      this.input.keyboard.on('keydown-A', () => this.movePlayer(-1, 0));
-      this.input.keyboard.on('keydown-D', () => this.movePlayer(1, 0));
-      this.input.keyboard.on('keydown-UP', () => this.movePlayer(0, -1));
-      this.input.keyboard.on('keydown-DOWN', () => this.movePlayer(0, 1));
-      this.input.keyboard.on('keydown-LEFT', () => this.movePlayer(-1, 0));
-      this.input.keyboard.on('keydown-RIGHT', () => this.movePlayer(1, 0));
-    }
-
-    const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? 'http://localhost:3000' 
-      : window.location.origin;
-
-    this.socket = io(socketUrl);
-
     const handlePickEvolution = ((e: CustomEvent) => {
-      this.socket.emit('evolution_picked', e.detail);
+      if (this.socket) this.socket.emit('evolution_picked', e.detail);
     }) as EventListener;
 
     const handlePopupState = ((e: CustomEvent) => {
@@ -79,14 +59,59 @@ export class GameScene extends Phaser.Scene {
       window.removeEventListener('pick-evolution', handlePickEvolution);
       window.removeEventListener('popup-state', handlePopupState);
       if (this.socket) {
+        this.socket.off('chaos_update');
+        this.socket.off('chaos_fire');
         this.socket.disconnect();
       }
     });
 
+
+    // 🔌 Socket Connection Setup
+    const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? 'http://localhost:3000' 
+      : window.location.origin;
+
+    console.log(`🔌 CONNECTING TO: ${socketUrl}`);
+    this.socket = io(socketUrl, {
+      reconnectionAttempts: 5,
+      timeout: 10000
+    });
+
+    // 🛡️ Connection Event Handlers
+    this.socket.on('connect', () => {
+      console.log('✅ SOCKET CONNECTED:', this.socket.id);
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ SOCKET CONNECTION ERROR:', error);
+      window.dispatchEvent(new CustomEvent('connection-error', { detail: error.message }));
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.warn('⚠️ SOCKET DISCONNECTED:', reason);
+      this.isInitialized = false;
+    });
+
     this.socket.on('init', (data: any) => {
-      if (!this.add) return;
+      console.log('📦 RECEIVED INIT DATA:', data);
+      
+      // Cleanup existing grid if any (for reconnections)
+      if (this.grid.length > 0) {
+        this.grid.forEach(row => row.forEach(tile => {
+          tile.rect.destroy();
+          tile.progressRect.destroy();
+        }));
+        this.grid = [];
+      }
+
       this.socketId = data.id;
       const me = data.players[this.socketId];
+      
+      if (!me) {
+        console.error('❌ CRITICAL: Local player not found in server stats!');
+        return;
+      }
+
       this.playerGridX = me.x;
       this.playerGridY = me.y;
       this.myColor = me.color;
@@ -103,27 +128,27 @@ export class GameScene extends Phaser.Scene {
       window.dispatchEvent(new CustomEvent('player-init', { detail: { name: me.name } }));
       window.dispatchEvent(new CustomEvent('player-pos', { detail: { x: this.playerGridX, y: this.playerGridY } }));
 
-      // Listen for evolution picks from React
+      // Setup UI/Chaos listeners once
       window.addEventListener('pick-evolution', handlePickEvolution);
       window.addEventListener('popup-state', handlePopupState);
-      window.addEventListener('chaos-fire', () => {
-        this.cameras.main.shake(300, 0.02);
-      });
-
+      
+      this.socket.off('chaos_update'); // Avoid duplicates
       this.socket.on('chaos_update', (seconds: number) => {
         window.dispatchEvent(new CustomEvent('chaos-update', { detail: seconds }));
       });
 
+      this.socket.off('chaos_fire');
       this.socket.on('chaos_fire', (data: { grid: any[][] }) => {
         this.cameras.main.shake(300, 0.02);
         
         // Sync grid with server data
-        for (let y = 0; y < this.GRID_SIZE; y++) {
-          for (let x = 0; x < this.GRID_SIZE; x++) {
+        for (let y = 0; y < data.grid.length; y++) {
+          for (let x = 0; x < data.grid[y].length; x++) {
+            if (!this.grid[y] || !this.grid[y][x]) continue;
+
             const serverTile = data.grid[y][x];
             const tile = this.grid[y][x];
             
-            // Only update if type changed
             if (tile.type !== serverTile.type) {
               tile.type = serverTile.type;
               let baseColor = 0x1c1b1b;
@@ -142,18 +167,19 @@ export class GameScene extends Phaser.Scene {
       });
 
       // Create grid from server data
-      for (let y = 0; y < this.GRID_SIZE; y++) {
+      const serverGrid = data.grid;
+      for (let y = 0; y < serverGrid.length; y++) {
         this.grid[y] = [];
-        for (let x = 0; x < this.GRID_SIZE; x++) {
+        for (let x = 0; x < serverGrid[y].length; x++) {
           const px = this.OFFSET_X + x * (this.TILE_SIZE + this.TILE_SPACING);
           const py = this.OFFSET_Y + y * (this.TILE_SIZE + this.TILE_SPACING);
           
-          const serverTile = data.grid[y][x];
+          const serverTile = serverGrid[y][x];
           const type = serverTile.type as TileType;
           let baseColor = 0x1c1b1b;
           
-          if (type === TileType.POWER) baseColor = 0x6E560A; // Bright dark gold
-          else if (type === TileType.HAZARD) baseColor = 0x5E0A0A; // Distinct dark red
+          if (type === TileType.POWER) baseColor = 0x6E560A;
+          else if (type === TileType.HAZARD) baseColor = 0x5E0A0A;
           
           const tile = this.add.rectangle(px, py, this.TILE_SIZE, this.TILE_SIZE, baseColor);
           tile.setOrigin(0, 0);
@@ -161,13 +187,13 @@ export class GameScene extends Phaser.Scene {
           tile.setInteractive();
           
           tile.on('pointerover', () => {
-            if (this.grid[y][x].owner !== this.socketId) {
+            if (this.grid[y] && this.grid[y][x] && this.grid[y][x].owner !== this.socketId) {
               tile.setStrokeStyle(2, 0x00fbfb, 0.5);
             }
           });
           
           tile.on('pointerout', () => {
-            if (this.grid[y][x].owner !== this.socketId) {
+            if (this.grid[y] && this.grid[y][x] && this.grid[y][x].owner !== this.socketId) {
               tile.setStrokeStyle(1, 0x3a4a49, 0.5);
             }
           });
@@ -183,7 +209,6 @@ export class GameScene extends Phaser.Scene {
             type
           };
 
-          // Apply captured state if already owned
           if (serverTile.owner) {
             this.applyCaptureVisuals(x, y, serverTile.owner);
           }
@@ -209,8 +234,10 @@ export class GameScene extends Phaser.Scene {
         if (id !== this.socketId) {
           this.addOtherPlayer(id, data.players[id].x, data.players[id].y, data.players[id].color);
           if (data.players[id].stats && data.players[id].stats.visible === false) {
-            this.otherPlayers[id].rect.setAlpha(0);
-            this.otherPlayers[id].glow.setAlpha(0);
+            if (this.otherPlayers[id]) {
+              this.otherPlayers[id].rect.setAlpha(0);
+              this.otherPlayers[id].glow.setAlpha(0);
+            }
           }
         }
       });
@@ -319,10 +346,10 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.socket.on('map_shrink', (data: any) => {
-      for (let y = 0; y < this.GRID_SIZE; y++) {
-        for (let x = 0; x < this.GRID_SIZE; x++) {
+      for (let y = 0; y < data.grid.length; y++) {
+        for (let x = 0; x < data.grid[y].length; x++) {
           const serverTile = data.grid[y][x];
-          if (serverTile.type === 'shrinking') {
+          if (serverTile.type === 'shrinking' && this.grid[y] && this.grid[y][x]) {
             const tile = this.grid[y][x];
             tile.type = 'shrinking' as any;
             tile.owner = null;
