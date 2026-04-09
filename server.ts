@@ -16,7 +16,9 @@ let players: Record<string, any> = {};
 let shrinkLevel = 0;
 let operatorCounter = 1;
 let shrinkTimer: NodeJS.Timeout | null = null;
+let chaosTimer: NodeJS.Timeout | null = null;
 let gameLoop: NodeJS.Timeout | null = null;
+let chaosCountdown = 35;
 let io: Server;
 
 // 🌀 Core Initialization & Reset
@@ -45,6 +47,7 @@ const resetGameServer = () => {
   players = {};
 
   startMapShrink();
+  startChaosCountdown();
   startGameLoop();
 };
 
@@ -67,6 +70,35 @@ const startMapShrink = () => {
     }
     io.emit('map_shrink', { grid });
   }, SHRINK_INTERVAL);
+};
+
+const startChaosCountdown = () => {
+  chaosCountdown = 35;
+  if (chaosTimer) clearInterval(chaosTimer);
+  chaosTimer = setInterval(() => {
+    chaosCountdown--;
+    if (chaosCountdown <= 0) {
+      handleChaosEvent();
+      chaosCountdown = 35;
+    }
+    io.emit('chaos_update', chaosCountdown);
+  }, 1000);
+};
+
+const handleChaosEvent = () => {
+  console.log("🔥 CHAOS EVENT TRIGGERED!");
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      if (!grid[y][x].owner && grid[y][x].type !== 'shrinking') {
+        const rand = Math.random();
+        let type = 'normal';
+        if (rand < 0.15) type = 'power';
+        else if (rand < 0.3) type = 'hazard';
+        grid[y][x].type = type;
+      }
+    }
+  }
+  io.emit('chaos_fire', { grid });
 };
 
 // 🌀 Authoritative Game Tick (The Heartbeat)
@@ -144,7 +176,7 @@ const startGameLoop = () => {
     }
 
     // Check Victory
-    if (Object.keys(players).length === 1 && operatorCounter > 1) {
+    if (Object.keys(players).length === 1 && operatorCounter > 2) {
        const winnerId = Object.keys(players)[0];
        io.emit("game_over", { winner: winnerId });
     }
@@ -169,10 +201,11 @@ async function startServer() {
   const app = express();
   const httpServer = createServer(app);
   io = new Server(httpServer, { cors: { origin: "*" } });
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   initializeGrid();
   startMapShrink();
+  startChaosCountdown();
   startGameLoop();
 
   io.on("connection", (socket) => {
@@ -201,7 +234,8 @@ async function startServer() {
         ghost: false,
         visible: true
       },
-      isFighting: false
+      isFighting: false,
+      lastMoveTime: 0
     };
     operatorCounter++;
 
@@ -213,6 +247,10 @@ async function startServer() {
       const player = players[socket.id];
       if (!player || player.isFighting) return;
 
+      // 🛡️ RATE LIMITING
+      const now = Date.now();
+      if (now - player.lastMoveTime < player.stats.moveDelay - 10) return; // 10ms grace period
+
       // 🛡️ SANITIZATION
       const targetX = Math.max(0, Math.min(GRID_SIZE - 1, data.x));
       const targetY = Math.max(0, Math.min(GRID_SIZE - 1, data.y));
@@ -222,6 +260,7 @@ async function startServer() {
       if (dx + dy <= 1) { // Adjacency Check
         player.x = targetX;
         player.y = targetY;
+        player.lastMoveTime = now;
         io.emit("playerMoved", { id: socket.id, x: player.x, y: player.y });
         
         // Anti-Snowball

@@ -81,6 +81,7 @@ export default function App() {
         setIsWinner(true);
       }
     };
+    const handleChaosUpdate = (e: any) => setChaosSeconds(e.detail);
 
     window.addEventListener('energy-update', handleEnergyUpdate);
     window.addEventListener('player-pos', handlePosUpdate);
@@ -89,6 +90,7 @@ export default function App() {
     window.addEventListener('hp-update', handleHpUpdate);
     window.addEventListener('player-eliminated', handleEliminated);
     window.addEventListener('game-over', handleGameOver);
+    window.addEventListener('chaos-update', handleChaosUpdate);
 
     return () => {
       window.removeEventListener('energy-update', handleEnergyUpdate);
@@ -98,6 +100,7 @@ export default function App() {
       window.removeEventListener('hp-update', handleHpUpdate);
       window.removeEventListener('player-eliminated', handleEliminated);
       window.removeEventListener('game-over', handleGameOver);
+      window.removeEventListener('chaos-update', handleChaosUpdate);
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
@@ -107,13 +110,6 @@ export default function App() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setChaosSeconds(prev => {
-        if (prev <= 1) {
-          window.dispatchEvent(new CustomEvent('chaos-fire'));
-          return 35;
-        }
-        return prev - 1;
-      });
       setGameSeconds(prev => prev + 1);
     }, 1000);
     return () => clearInterval(timer);

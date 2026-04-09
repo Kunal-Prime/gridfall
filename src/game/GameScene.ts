@@ -61,7 +61,11 @@ export class GameScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-RIGHT', () => this.movePlayer(1, 0));
     }
 
-    this.socket = io('https://gridfall-production.up.railway.app');
+    const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? 'http://localhost:3000' 
+      : window.location.origin;
+
+    this.socket = io(socketUrl);
 
     const handlePickEvolution = ((e: CustomEvent) => {
       this.socket.emit('evolution_picked', e.detail);
@@ -104,12 +108,34 @@ export class GameScene extends Phaser.Scene {
       window.addEventListener('popup-state', handlePopupState);
       window.addEventListener('chaos-fire', () => {
         this.cameras.main.shake(300, 0.02);
-        // flip all uncaptured tiles to random types
+      });
+
+      this.socket.on('chaos_update', (seconds: number) => {
+        window.dispatchEvent(new CustomEvent('chaos-update', { detail: seconds }));
+      });
+
+      this.socket.on('chaos_fire', (data: { grid: any[][] }) => {
+        this.cameras.main.shake(300, 0.02);
+        
+        // Sync grid with server data
         for (let y = 0; y < this.GRID_SIZE; y++) {
           for (let x = 0; x < this.GRID_SIZE; x++) {
-            if (this.grid[y][x].owner !== this.socketId) {
-              this.grid[y][x].captureProgress = 0;
-              this.grid[y][x].progressRect.width = 0;
+            const serverTile = data.grid[y][x];
+            const tile = this.grid[y][x];
+            
+            // Only update if type changed
+            if (tile.type !== serverTile.type) {
+              tile.type = serverTile.type;
+              let baseColor = 0x1c1b1b;
+              if (tile.type === TileType.POWER) baseColor = 0x6E560A;
+              else if (tile.type === TileType.HAZARD) baseColor = 0x5E0A0A;
+              
+              tile.rect.setFillStyle(baseColor);
+            }
+
+            if (!serverTile.owner) {
+              tile.captureProgress = 0;
+              tile.progressRect.width = 0;
             }
           }
         }
@@ -369,6 +395,7 @@ export class GameScene extends Phaser.Scene {
     tile.rect.setFillStyle(captureColor, 0.15);
     tile.rect.setStrokeStyle(1, captureColor, 1);
     tile.progressRect.width = 0;
+    tile.captureProgress = 0;
     tile.progressRect.setFillStyle(captureColor);
     
     this.tweens.add({
