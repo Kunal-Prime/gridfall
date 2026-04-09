@@ -70,9 +70,9 @@ export class GameScene extends Phaser.Scene {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const socketUrl = backendUrl || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
       ? 'http://localhost:3000' 
-      : window.location.origin);
+      : 'https://gridfall-production.up.railway.app');
 
-    console.log(`🔌 CONNECTING TO: ${socketUrl}${backendUrl ? ' (from Env)' : ''}`);
+    console.log(`🔌 CONNECTING TO: ${socketUrl}${backendUrl ? ' (from Env)' : ' (Railway Fallback)'}`);
     this.socket = io(socketUrl, {
       reconnectionAttempts: 5,
       timeout: 10000
