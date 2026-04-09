@@ -48,6 +48,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    if (this.input.keyboard) {
+      this.cursors = this.input.keyboard.createCursorKeys();
+
+      this.input.keyboard.on('keydown-W', () => this.movePlayer(0, -1));
+      this.input.keyboard.on('keydown-S', () => this.movePlayer(0, 1));
+      this.input.keyboard.on('keydown-A', () => this.movePlayer(-1, 0));
+      this.input.keyboard.on('keydown-D', () => this.movePlayer(1, 0));
+      this.input.keyboard.on('keydown-UP', () => this.movePlayer(0, -1));
+      this.input.keyboard.on('keydown-DOWN', () => this.movePlayer(0, 1));
+      this.input.keyboard.on('keydown-LEFT', () => this.movePlayer(-1, 0));
+      this.input.keyboard.on('keydown-RIGHT', () => this.movePlayer(1, 0));
+    }
+
     const handlePickEvolution = ((e: CustomEvent) => {
       if (this.socket) this.socket.emit('evolution_picked', e.detail);
     }) as EventListener;
