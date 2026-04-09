@@ -131,7 +131,27 @@ Fast, intense, and replayable
 
 * **Frontend:** React + Phaser.js
 * **Backend:** Node.js + Socket.io
-* **Deployment:** Vercel + Railway
+* **Deployment:** Vercel (Frontend) + Render/Railway (Backend)
+
+---
+
+## 🚀 Deployment Guide
+
+To get the game running in production, you must host the backend and frontend separately:
+
+### 1. Backend (Server)
+1. Deploy this repository to **Render** or **Railway**.
+2. The `Dockerfile` included in the root will automatically set up the environment.
+3. Once deployed, copy your backend URL (e.g., `https://gridfall-api.onrender.com`).
+
+### 2. Frontend (Vercel)
+1. Go to your **Vercel Project Settings** -> **Environment Variables**.
+2. Add a new variable:
+   - **Key:** `VITE_BACKEND_URL`
+   - **Value:** Your backend URL (from step 1).
+3. Redeploy your Vercel project.
+
+The game will now correctly connect to your live server!
 
 ---
 

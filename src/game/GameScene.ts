@@ -67,11 +67,12 @@ export class GameScene extends Phaser.Scene {
 
 
     // 🔌 Socket Connection Setup
-    const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const socketUrl = backendUrl || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
       ? 'http://localhost:3000' 
-      : window.location.origin;
+      : window.location.origin);
 
-    console.log(`🔌 CONNECTING TO: ${socketUrl}`);
+    console.log(`🔌 CONNECTING TO: ${socketUrl}${backendUrl ? ' (from Env)' : ''}`);
     this.socket = io(socketUrl, {
       reconnectionAttempts: 5,
       timeout: 10000
