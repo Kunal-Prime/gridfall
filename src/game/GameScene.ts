@@ -47,6 +47,7 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
+  create() {
     const handlePickEvolution = ((e: CustomEvent) => {
       if (this.socket) this.socket.emit('evolution_picked', e.detail);
     }) as EventListener;
